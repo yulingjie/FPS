@@ -1,0 +1,559 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using System.Net;
+using System.Net.Sockets;
+using System.IO;
+using System;
+using System.Collections.Concurrent;
+
+struct Message
+{
+    public static UInt16 HEADER_LEN = sizeof(UInt16) + 1 + 1 + 1 + 1 + 1;
+    public UInt16 len;
+    public byte seq;
+    public byte ack;
+    public byte syn;
+    public byte fin;
+    public byte rsd;
+
+    public byte[] data;
+
+    public UInt16 GetLength()
+    {
+        if (data != null)
+        {
+            return (UInt16)(HEADER_LEN + data.Length);
+        }
+        return HEADER_LEN;
+    }
+}
+class SimpleTimer
+{
+    public float tick;
+    public Action onTickNotify;
+}
+
+
+public class NetworkClient : MonoBehaviour
+{
+    private static NetworkClient s_Instance;
+    public static NetworkClient Instance
+    {
+        get{
+            if(s_Instance == null)
+            {
+                return null;
+            }
+            return s_Instance;
+        }
+    }
+    enum ESendState
+    {
+        Null = 0,
+        Idle = 1,
+        WaitAck = 2,
+
+    }
+    enum EConnectState
+    {
+        Null = 0,
+        CLOSED = 1,
+        SYN_SENT = 2,
+        ESTABLISHED = 3,
+        FIN_WAIT_1 = 4,
+        FIN_WAIT_2 = 5,
+        TIME_WAIT = 6
+    }
+    public class State
+    {
+        const int MAX_SIZE = 8 * 1024;
+
+        public byte[] buffer = new byte[8 * 1024];
+        public UInt16 length;
+        public int index;
+        
+        public Socket socket;
+
+
+
+
+        public void Reset()
+        {
+            Array.Clear(buffer,0, buffer.Length);
+            index = 0;
+            length = 0;
+        }
+
+    }
+    const float SEND_TIME_INI = 3.0f;
+    private State _sendState = new State();
+    private State _recvState = new State();
+    private Socket _socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+    // Start is called before the first frame update
+    private byte _cliSeq;
+    private byte _svrSeq;
+
+    private ESendState _eSendState;
+    private EConnectState _eConnectState;
+    
+    private ConcurrentQueue<Message> _recvMessageQ = new ConcurrentQueue<Message>();
+
+    private float _sendTimer;
+
+    
+    private float _rttTime;
+
+    
+    public byte GetCliSeq()
+    {
+        var cliseq = _cliSeq;
+        _cliSeq = inverse((byte)_cliSeq);
+
+        return cliseq;
+    }
+    public byte GetSvrSeq()
+    {
+        return inverse(_svrSeq);
+    }
+
+    void ReqConnect()
+    {
+
+    }
+
+
+    void Start()
+    {
+       _eConnectState = EConnectState.Null;
+       _rttTime = 3.0f;
+        //SendSYN();
+        //Receive();
+    }
+    public void Connect()
+    {
+        _socket.Connect(IPAddress.Parse("127.0.0.1"), 8080);
+        _sendState.socket = _socket;
+        _recvState.socket = _socket;
+
+        SendSYN();
+        Receive();
+    }
+    public void Disconnect()
+    {
+        SendFIN();
+    }
+    void Send()
+    {
+        //Debug.LogFormat("[Info] _eConnectState ={0}", _eConnectState);
+        //if(_eConnectState != EConnectState.ESTABLISHED) return;
+        _eSendState = ESendState.WaitAck;
+        //Debug.LogFormat("[Info] Send {0} bytes at {1}", _sendState.length, 0);
+        _socket.BeginSend(_sendState.buffer, _sendState.index, _sendState.length - _sendState.index, SocketFlags.None, (ar) =>
+                {
+
+                State state = ar.AsyncState as State;
+                UInt16 byteSend = (UInt16)state.socket.EndSend(ar);
+
+                if (byteSend > 0)
+                {
+                state.index += byteSend;
+
+                if (state.index < byteSend)
+                {
+                Send();
+                }
+                else
+                {
+
+                //Debug.LogFormat("[Info] Send {0} success!", byteSend);
+                }
+                }
+
+
+
+                }, _sendState);
+    }
+    void OnSendTimeOut()
+    {
+        _sendState.index = 0;
+        Debug.LogFormat("Resend OnTimeOut");
+        Send();
+    }
+    void Receive()
+    {
+        _socket.BeginReceive(_recvState.buffer, _recvState.index, 1024, SocketFlags.None, (ar) =>
+                {
+                var state = ar.AsyncState as State;
+                int byteRecv = state.socket.EndReceive(ar);
+                //Debug.LogFormat("Receive {0} bytes",byteRecv);
+                if (byteRecv > 0)
+                {
+                if (state.length <= 0)
+                {
+                if (byteRecv >= Message.HEADER_LEN)
+                {
+                var bts = new byte[2];
+                Array.Copy(state.buffer, bts,2);
+                if(BitConverter.IsLittleEndian)
+                {
+                var t = bts[0];
+                bts[0] = bts[1];
+                bts[1] = t;
+                }
+                state.length = BitConverter.ToUInt16(bts, 0);
+                // Debug.LogFormat("State.Length = {0}",state.length);
+                }
+                else
+                {
+                    //  Receive();
+                }
+                }
+
+                state.index += byteRecv;
+                if(state.index < state.length)
+                {
+                    //Receive();
+                }
+                else
+                {
+                    ProcessRecvBuffer(state.buffer);
+                    state.Reset();
+                }      
+
+                // always linger to receive
+                Receive();
+                }
+                else
+                {
+                    Debug.LogFormat("End Expectedly!!");
+                }
+                }, _recvState);
+    }
+    void ProcessRecvBuffer(byte[] buffer)
+    {
+        Message message = new Message();
+        ConvertByteArrayToMessage(buffer,ref message);
+        _recvMessageQ.Enqueue(message);
+    }
+    void SendSYN()
+    {
+        Debug.LogFormat("[Info] Send SYN");
+        Message msg = new Message();
+        msg.seq = GetCliSeq();
+        msg.ack = inverse(_svrSeq);
+        msg.syn = 1;
+        msg.fin = 0;
+        msg.rsd = 1;
+        //msg.data = FillMessageData(EMsgType.MsgNone,System.Text.Encoding.UTF8.GetBytes("Request Connect"));
+
+        SendMessage(msg);
+        _eConnectState = EConnectState.SYN_SENT;
+    }
+    private float _finishTick;
+    void SendFIN()
+    {
+        Debug.LogFormat("[Info] Send FIN");
+        Message msg = new Message();
+        msg.seq = GetCliSeq();
+        msg.ack = inverse(_svrSeq);
+        msg.syn = 0;
+        msg.fin = 1;
+        msg.rsd = 0;
+        //msg.data = System.Text.Encoding.UTF8.GetBytes("Request Disconnect");
+
+        SendMessage(msg);
+        _eConnectState = EConnectState.FIN_WAIT_1;
+        _finishTick = Time.realtimeSinceStartup;
+    }
+    private void SendMessage(Message msg)
+    {
+        //if(_eConnectState != EConnectState.ESTABLISHED) return;
+        UInt16 len = msg.GetLength();
+        msg.len = len;
+        byte[] buff = new byte[len];
+        ConvertMessageToByteArray(msg, ref buff);
+        LogSendMsg(msg);
+
+        Array.Clear(_sendState.buffer, 0, _sendState.buffer.Length);
+        Array.Copy(buff, 0, _sendState.buffer, 0 , buff.Length);
+        _sendState.index = 0;
+        _sendState.length = (ushort)buff.Length;
+        Send();
+    }
+    enum EMsgType
+    {
+        MsgNone,
+        MsgEcho,
+    }
+    public void SendEchoMessage()
+    {
+        Message msg = new Message();
+        msg.seq = GetCliSeq();
+        msg.ack = inverse(_svrSeq);
+        msg.syn = 0;
+        msg.fin = 0;
+        msg.rsd = 0;
+        var dataBuff = System.Text.Encoding.UTF8.GetBytes("Echo message");
+
+        msg.data = FillMessageData(EMsgType.MsgEcho, dataBuff);
+        SendMessage(msg);
+    }
+    private byte[] FillMessageData(EMsgType eMsgType, byte[] dataBuffer)
+    {
+        var tmpBuff = BitConverter.GetBytes((ushort)eMsgType);
+        ConvertToBigEndianShort(tmpBuff);
+        //Debug.LogFormat("tmpBuff [0] = {0} 1 = {1} ", tmpBuff[0], tmpBuff[1]);
+        var dstBuffer = new byte[2 + dataBuffer.Length];
+        Array.Copy(tmpBuff,dstBuffer,2);
+        Array.Copy(dataBuffer,0,dstBuffer,2,dataBuffer.Length);
+        return dstBuffer;
+    }
+
+    private byte inverse(byte b)
+    {
+        return (byte)(b ^ 1);
+    }
+    void SendAck()
+    {
+        //Debug.LogFormat("[Info] Send ACK");
+        Message msg = new Message();
+        msg.seq = GetCliSeq();
+        msg.ack = GetSvrSeq(); 
+        msg.syn = 0;
+        msg.fin = 0;
+        msg.rsd = 0;
+        msg.len = msg.GetLength();
+        SendMessage(msg);
+    }
+    // send a empty message to ack the server connection
+    void AckServerConnect()
+    {
+        Debug.LogFormat("[Info] Ack Server Connect");
+        Message msg = new Message();
+        msg.seq = GetCliSeq();
+        msg.ack = inverse(_svrSeq);
+        msg.syn = 0;
+        msg.fin = 0;
+        msg.rsd = 1;
+        msg.data = FillMessageData(EMsgType.MsgNone,System.Text.Encoding.UTF8.GetBytes("Ack Server Connect"));
+        msg.len = msg.GetLength();
+        SendMessage(msg);
+    }
+
+    void AckServerFinishConnect()
+    {
+        Debug.LogFormat("[Info] Ack Server Finish Connect");
+        Message msg = new Message();
+        msg.seq = GetCliSeq();
+        msg.ack = inverse(_svrSeq);
+        msg.syn = 0;
+        msg.fin = 1;
+        msg.rsd = 0;
+        msg.data = System.Text.Encoding.UTF8.GetBytes("Ack Server Finish Connect");
+        msg.len = msg.GetLength();
+
+        SendMessage(msg);
+
+    }
+    private void LogSendMsg(Message msg)
+    {
+        var tmpBuff = new byte[2];
+        if(msg.data != null)
+        {
+            Array.Copy(msg.data,0, tmpBuff, 0, 2);
+            ConvertToLocalEndianShort(tmpBuff);
+            var eMsgType = (EMsgType)BitConverter.ToUInt16(tmpBuff, 0);
+            var dataBuff = new byte[msg.data.Length - 2];
+            Array.Copy(msg.data,2, dataBuff,0, dataBuff.Length);
+            Debug.LogFormat("[Info] Send seq = {0} ack = {1} syn = {2} fin = {3} rsd = {4} data length = {5} msgType = {6} data content = {7}",msg.seq, msg.ack, msg.syn, msg.fin, msg.rsd,
+                    msg.data.Length, eMsgType,  System.Text.Encoding.UTF8.GetString(dataBuff));
+        }
+        else
+        {
+           Debug.LogFormat("[Info] Send seq = {0} ack = {1} syn = {2} fin = {3} rsd = {4}", msg.seq, msg.ack, msg.syn, msg.fin, msg.rsd); 
+        }
+    }
+
+    private void ConvertByteArrayToMessage(byte[] btarr, ref Message message)
+    {
+        int index =0;
+        var lenBuf = new byte[2];
+        Array.Copy(btarr,lenBuf,2);
+        ConvertToBigEndianShort(lenBuf);
+
+        message.len = BitConverter.ToUInt16(lenBuf,0);
+        index += 2;
+        message.seq = btarr[index++];
+        message.ack = btarr[index++];
+        message.syn = btarr[index++];
+        message.fin = btarr[index++];
+        message.rsd = btarr[index++];
+        var dataLen = message.len  - Message.HEADER_LEN;
+        if(dataLen > 0)
+        {
+            message.data = new byte[dataLen];
+            Array.Copy(btarr,index, message.data, 0, dataLen);
+        }
+        else{
+            message.data = null;
+        }
+    }
+    private void ConvertToLocalEndianShort(byte[] tmpBuffer)
+    {
+        if(BitConverter.IsLittleEndian)
+        {
+            byte t = tmpBuffer[0];
+            tmpBuffer[0] = tmpBuffer[1];
+            tmpBuffer[1] = t;
+        }
+    }
+    private void ConvertToBigEndianShort(byte[] tmpBuffer)
+    {
+        if(BitConverter.IsLittleEndian)
+        {
+            byte t = tmpBuffer[0];
+            tmpBuffer[0] = tmpBuffer[1];
+            tmpBuffer[1] = t;
+        }
+    }
+    private void ConvertMessageToByteArray(Message message, ref byte[] btarr)
+    {
+        int index = 0;
+
+        var tmpBuff = BitConverter.GetBytes(message.len);
+        ConvertToBigEndianShort(tmpBuff);
+        Array.Copy(tmpBuff, btarr, sizeof(UInt16));
+        index += sizeof(UInt16);
+        btarr[index++] = message.seq;
+        btarr[index++] = message.ack;
+        btarr[index++] = message.syn;
+        btarr[index++] = message.fin;
+        btarr[index++] = message.rsd;
+        if (message.data != null)
+        {
+            Array.Copy(message.data, 0, btarr, index, message.data.Length);
+        }
+    }
+    private void LogReceiveMsg(Message msg)
+    {
+
+    }
+
+    private void ProcessRecvMessage(Message msg)
+    {
+        //Debug.LogFormat("Length = {0}",msg.data.Length);
+        Debug.LogFormat("[Info] receive msg ack = {0} seq = {1} fin = {2} syn = {3}, rsd = {4}",msg.ack,msg.seq, msg.fin,msg.syn, msg.rsd);
+        if(msg.ack != _cliSeq)
+        {
+            Debug.LogErrorFormat("[Error] cli ack from server {0} mismatch cli seq {1}",msg.ack,_cliSeq);
+            // discard
+            return;
+        }
+        _sendTimer = 0.0f;
+        // receive correct msg
+        _eSendState = ESendState.Idle;
+        _sendState.Reset();
+        // set server seq
+        _svrSeq = msg.seq;
+        if(msg.syn == 1) //  establish connection
+        {   
+            // receive syn & ack, send ack
+            _eConnectState = EConnectState.SYN_SENT;
+            // as connect requester, we think we have already established connection
+            // now we need to ack the server
+            //AckServerConnect();
+            SendAck();
+            Debug.LogFormat("[Info] Receive SYN & ACK, send ACK connection ESTABLISHED");
+            _eConnectState = EConnectState.ESTABLISHED;
+        }
+        else if(msg.fin == 1) // finish connection
+        {
+            // Receive FIN, Send ACK
+            if(_eConnectState == EConnectState.FIN_WAIT_2)
+            {
+                Debug.LogFormat("[Info] Receive FIN, send ACK");
+                SendAck();
+                _eConnectState = EConnectState.TIME_WAIT;
+                AddTimer(3, ()=>{
+                        Debug.LogFormat("[Info] Connection Closed");
+                        _eConnectState = EConnectState.CLOSED;
+                        _socket.Disconnect(false);
+                        _socket.Close();
+                        _socket.Dispose();
+                        });
+            }
+        }
+        else
+        {
+            // receive normal message
+            if(_eConnectState == EConnectState.FIN_WAIT_1)
+            {
+                Debug.LogFormat("[Info] Receive ACK, send nothing");
+                _eConnectState = EConnectState.FIN_WAIT_2;
+            }
+        }
+    }
+    // Update is called once per frame
+    void Update()
+    {
+        if(_recvMessageQ.Count > 0)
+        {
+            while(_recvMessageQ.Count >0)
+            {
+                Message message;
+                bool result = _recvMessageQ.TryDequeue(out message);
+                if(result)
+                {
+                    ProcessRecvMessage(message);
+                }
+            }
+        }
+    }
+    float _lastTick = -1;
+    void FixedUpdate()
+    {
+        if(_lastTick ==-1)
+        {
+            _lastTick = Time.realtimeSinceStartup;
+            return;
+        }
+        float tickNow = Time.realtimeSinceStartup;
+        float deltaTime = tickNow - _lastTick;
+        _lastTick = Time.realtimeSinceStartup;
+        if(_sendTimer > 0.00001f)
+        {
+            _sendTimer -= deltaTime;
+            if(_sendTimer <= 0.00001f)
+            {
+                _sendTimer = 0f;
+              //  OnSendTimeOut();
+            }
+        }
+
+        if(_finishTick > 0.00001f)
+        {
+            _finishTick -= deltaTime;
+            if(_finishTick <= 0.00001f)
+            {
+                _finishTick = 0f;
+
+            }
+        }
+
+    }
+
+    void Awake()
+    {
+        s_Instance = this;
+
+    }
+
+    void AddTimer(float tick, Action callback)
+    {
+        var timer = new SimpleTimer();
+        timer.tick = tick;
+        timer.onTickNotify = callback;
+    }
+
+}

@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
-
+    "math/rand"
+    "time"
 )
 
 func main() {
@@ -36,14 +37,11 @@ func main() {
     for{
     }
 }
-
-
-func inv_seq(seq byte) byte{
-    if(seq == 0) {
-        return 1
-    }
-    return 0
+func increase(seq byte) byte{
+    seq ++
+    return seq
 }
+
 const (
     non = iota
     listen = iota
@@ -55,37 +53,52 @@ const (
 )
 
 type Connection struct{
-    state int;
-    cli_seq byte;
-    svr_seq byte;
-    addr net.Addr;
-    ring_buffer *RingBuffer;
-    msg_receive_chan chan Message;
-    msg_send_chan chan MessageChanData;
+    state int
+    cli_seq byte
+    svr_seq byte
+    addr net.Addr
+    ring_buffer *RingBuffer
+    msg_receive_chan chan Message
+    msg_send_chan chan MessageChanData
+
+    // send message buffer
+    msg_buffer [256]*Message
+    base byte
+    nextseqnum byte
+    send_timeout time.Duration
+    send_timer *time.Timer
+    send_timer_cancel chan struct{}
+
     quit chan int
 }
-func (conn * Connection) handler(addr2conn map[string]*Connection){
-    for{
-        select {
-        case msg := <-conn.msg_receive_chan:
-            msg_type := MSG_NONE
-            if (len(msg.data) >= 2){
-                msg_type = conn.get_message_type(msg.data[0:2])
-            }
-            if(msg_type == MSG_ECHO){
-                data := make([]byte,len(msg.data[2:]))
-                copy(data, msg.data[2:])
-                conn.send_echo_message(data);
-            }else{// MSG_NONE do nothing
-                //conn.send_ack_message(0,0)
-            }
+
+
+
+func (conn * Connection) handler(msg  Message){
+    msg_type := MSG_NONE
+    if (len(msg.data) >= 2){
+        msg_type = conn.get_message_type(msg.data[0:2])
+    }
+    if(msg_type == MSG_ECHO){
+        rand.Seed(time.Now().UTC().UnixNano())
+        if(rand.Intn(100) %2 == 0){
+            data := make([]byte,len(msg.data[2:]))
+            copy(data, msg.data[2:])
+            conn.send_echo_message(data);
+        }else
+        {
+            fmt.Printf("[handler] drop receive message intentionally")
         }
+    }else{// MSG_NONE do nothing
+        //conn.send_ack_message(0,0)
     }
 }
+
 const (
     MSG_NONE uint16 = iota
     MSG_ECHO uint16 = iota
 )
+
 func log_message(message *Message, info string){
     fmt.Printf("[Info] send %s seq = %d ack = %d syn = %d fin = %d  data length = %d data content = %s\n", info, message.seq, message.ack, message.syn,message.fin, len(message.data), string(message.data))
 }
@@ -114,12 +127,81 @@ func (conn * Connection) get_message_type(data []byte) uint16{
     }
     return MSG_NONE
 }
+func (conn *Connection) is_send_full() bool{
+    var b byte
+    b = (conn.nextseqnum - 1)
+    if( b == conn.base){
+        return true
+    }
+    return false
+}
+func (conn *Connection) put_msg(message *Message) {
+    conn.msg_buffer[conn.nextseqnum] = message
+    conn.nextseqnum = (conn.nextseqnum + 1)
+}
 func (conn * Connection) send(message *Message){
+    if (conn.is_send_full()){
+        fmt.Printf("[Info] Connection send is full")
+        return
+    }
+    if(conn.base == conn.nextseqnum){
+
+    }
     msg_chan_data := MessageChanData{}
     msg_chan_data.addr = conn.addr
     msg_chan_data.message = message
+    if(message.rsd == 1){
+        conn.put_msg(message)
+        conn.start_send_timer()
+    }
     conn.msg_send_chan <- msg_chan_data
 }
+func (conn* Connection) start_send_timer(){
+    conn.send_timer = time.NewTimer(conn.send_timeout * time.Second)
+    conn.send_timer_cancel = make(chan struct{})
+    go func(send_timer *time.Timer, send_timer_cancel chan struct{}){
+        select{
+        case <-send_timer.C:
+            fmt.Printf("time out \n")
+            conn.resend_message()
+            conn.restart_send_timer()
+        case <-send_timer_cancel:
+            fmt.Printf("stop timer \n")
+        }
+    }(conn.send_timer, conn.send_timer_cancel)
+}
+func (conn* Connection) restart_send_timer(){
+    fmt.Printf("restart send timer\n")
+    conn.stop_send_timer()
+    conn.start_send_timer()
+}
+func (conn* Connection) stop_send_timer(){
+    if(conn.send_timer != nil){
+        if(!conn.send_timer.Stop()){
+            select{
+            case <- conn.send_timer.C:
+            default:
+            }
+        }
+        conn.send_timer_cancel <- struct{}{}
+    }
+}
+func (conn* Connection) resend_message(){
+    msg_index := conn.base
+    for{
+        if(msg_index == conn.nextseqnum){
+            break
+        }
+        msg := conn.msg_buffer[msg_index]
+        msg_index = (byte)(msg_index + 1)
+        msg_chan_data := MessageChanData{}
+        msg_chan_data.addr = conn.addr
+        msg_chan_data.message = msg
+        conn.msg_send_chan <- msg_chan_data
+    }
+}
+
+
 func send(msg_send_chan chan MessageChanData, addr net.Addr, message *Message){
     msg_chan_data := MessageChanData{}
     msg_chan_data.addr = addr
@@ -130,9 +212,10 @@ func send(msg_send_chan chan MessageChanData, addr net.Addr, message *Message){
 func (conn * Connection) send_echo_message(data []byte){
     message := create_message()
     message.seq = conn.svr_seq
-    conn.svr_seq = inv_seq(conn.svr_seq)
-    message.ack = inv_seq(conn.cli_seq)
+    conn.svr_seq = increase(conn.svr_seq)
+    message.ack = increase(conn.cli_seq)
     message.data = data
+    message.rsd = 1 // need resend
     message.CalculateLength()
     fmt.Printf("send_echo_message seq = %d\n",conn.svr_seq);
     log_message(message, "echo message")
@@ -140,11 +223,11 @@ func (conn * Connection) send_echo_message(data []byte){
 }
 func (conn* Connection) get_svr_seq() byte{
     seq := conn.svr_seq
-    conn.svr_seq = inv_seq(conn.svr_seq)
+    conn.svr_seq = increase(conn.svr_seq)
     return seq
 }
 func (conn* Connection) get_cli_ack() byte{
-    return inv_seq(conn.cli_seq)
+    return increase(conn.cli_seq)
 }
 
 func (conn * Connection) send_syn_recv_message(){
@@ -170,12 +253,10 @@ func send_syn_recv_message(svr_seq byte, cli_ack byte , msg_send_chan chan Messa
     log_message(message, "syn recv message")
     send(msg_send_chan,addr, message)
 }
-func (conn * Connection) send_ack_message(){
+func (conn * Connection) resend_ack_message(){
     message := &Message{}
     message.seq = conn.svr_seq
-    conn.svr_seq = inv_seq(conn.svr_seq)
-    //fmt.Printf("svr_seq = %d",conn.svr_seq)
-    message.ack = inv_seq(conn.cli_seq)
+    message.ack = increase(conn.cli_seq)
     message.syn = 0
     message.fin = 0
     message.rsd = 0
@@ -184,62 +265,22 @@ func (conn * Connection) send_ack_message(){
     log_message(message, "ack message")
     conn.send(message)
 }
-
-func (conn * Connection) receive() {
-    var msg_len uint16
-    msg_len = 0
-    for{
-        if(conn.ring_buffer.Length() < 2){
-            break
-        }
-        if(msg_len <= 0){
-            msg_len = binary.BigEndian.Uint16(conn.ring_buffer.data[conn.ring_buffer.r:])
-            fmt.Printf("[Info] Connection %s receive msg_len = %d \n", conn.addr.String(),msg_len)
-        }
-        if(uint16(conn.ring_buffer.Length()) < msg_len){
-            fmt.Printf("[Error] Connection %s ringBuffer length %d < msg length %d \n",conn.addr.String(),conn.ring_buffer.Length(), msg_len)
-            break;
-        }
-        msg_buff := make([]byte, msg_len)
-        read_len := uint16(conn.ring_buffer.Read(msg_buff))
-        if(msg_len != read_len){
-            fmt.Printf("[Error] Connection %s msg_buff read  error", conn.addr.String())
-        }
-        // process Message 
-        var index int
-        index = 0
-        var msg Message
-        var header_len uint16
-        header_len = MessageHeaderLength
-        msg.length = msg_len
-        index += 2;
-        msg.seq = msg_buff[index]
-        index ++
-        msg.ack = msg_buff[index]
-        index ++
-        msg.syn = msg_buff[index]
-        index ++
-        msg.fin = msg_buff[index]
-        index ++
-        msg.rsd = msg_buff[index]
-        index ++
-        msg.data = make([]byte, msg_len - header_len)
-        copy(msg.data,msg_buff[index:])
-        msg_type := conn.get_message_type(msg.data)
-        if(len(msg.data) > 0 ){
-            fmt.Printf("[Info] receive seq = %d ack = %d syn = %d fin = %d rsd = %d data length = %d msg_type = %d data content = %s\n",msg.seq, msg.ack, msg.syn, msg.fin, msg.rsd,len(msg.data),msg_type, string(msg.data[2:]))
-        }else{
-            fmt.Printf("[Info] receive seq = %d ack = %d syn = %d fin = %d rsd = %d\n",msg.seq, msg.ack, msg.syn, msg.fin, msg.rsd )
-        }
-        if(msg.syn != 1 && msg.ack != conn.svr_seq){
-            fmt.Printf("[Error] receive non-match cli-ack %d with server seq %d", msg.ack, conn.svr_seq)
-            return
-        }
-        conn.cli_seq = msg.seq
-        conn.msg_receive_chan <- msg
-    }
-
+func (conn * Connection) send_ack_message(){
+    message := &Message{}
+    message.seq = conn.svr_seq
+    conn.svr_seq = 0 // of no use in ack message
+    //fmt.Printf("svr_seq = %d",conn.svr_seq)
+    message.ack = increase(conn.cli_seq) // send ack of lask receive cli seq
+    message.syn = 0
+    message.fin = 0
+    message.rsd = 0 // rsd is 0 mearns no need to trace resend
+    message.data = []byte("server ack message");
+    message.CalculateLength()
+    log_message(message, "ack message")
+    conn.send(message)
 }
+
+
 type ChanData struct{
     Buff [1024]byte;
     Size int;
@@ -264,7 +305,7 @@ func create_message() *Message{
     return message
 }
 const(
-    MessageHeaderLength = 2 + 1 +1 + 1 +1 +1
+    MessageHeaderLength = 2 + 1 +1 + 1
 )
 type MessageChanData struct{
     message *Message;
@@ -282,6 +323,22 @@ func (msg *Message) CalculateLength() uint16 {
     msg.length = length
     return length
 }
+func (msg *Message) ConvertFromBuffer(buff []byte) int {
+    index := 0
+    msg.length = binary.BigEndian.Uint16(buff)
+    index += 2
+    msg.seq = buff[index]
+    index ++
+    msg.ack = buff[index]
+    index++
+    var bt = buff[index]
+    msg.syn = bt & 0x01
+    msg.fin = (bt >> 1) & 0x01
+    msg.rsd = (bt >> 2) & 0x01
+    index ++
+    copy(msg.data, buff[index:])
+    return int(msg.length)
+}
 func (msg *Message) ConvertToBuffer(buff []byte) int{
     var index int
     index = 0
@@ -291,14 +348,15 @@ func (msg *Message) ConvertToBuffer(buff []byte) int{
     index++
     buff[index] = msg.ack
     index++
-    buff[index] = msg.syn
+    var bt byte
+    bt = 0
+    bt |= msg.syn
+    bt |= (msg.fin << 1)
+    bt |= (msg.rsd << 2)
+    buff[index] = bt
     index++
-    buff[index] = msg.fin
-    index++
-    buff[index] = msg.rsd
-    index ++
     //fmt.Printf("[ConvertToBuffer] seq = %d ack = %d syn = %d fin = %d rsd = %d length = %d\n", msg.seq,
-//msg.ack, msg.syn, msg.fin, msg.rsd, msg.length);
+    //msg.ack, msg.syn, msg.fin, msg.rsd, msg.length);
     copy(buff[index:],msg.data)
     return int(msg.length)
 }
@@ -309,13 +367,13 @@ func buff_ack(buff []byte) byte{
     return buff[3]
 }
 func buff_syn(buff []byte) byte{
-    return buff[4]
+    return buff[4] & 0x01
 }
 func buff_fin(buff []byte) byte{
-    return buff[5]
+    return (buff[4]  >> 1) & 0x01
 }
 func buff_rsd(buff []byte) byte{
-    return buff[6];
+    return (buff[4] >> 2) & 0x01
 }
 
 func New(capacity int) *RingBuffer{
@@ -379,6 +437,7 @@ func create_new_connection(addr net.Addr, msg_send_chan chan MessageChanData) *C
     conn.msg_receive_chan = make(chan Message, 10)
     conn.msg_send_chan = msg_send_chan
     conn.state = non
+    conn.send_timeout = 3
     return conn
 }
 
@@ -389,9 +448,6 @@ type PreConnection struct{
 }
 func receiver(conn* net.UDPConn, addr2conn map[string]*Connection, msg_send_chan chan MessageChanData){
     fmt.Println("[Info] receiver Start!")
-    // addr to ringBuffer map
-    //var ringBuffer *RingBuffer;
-    //ringBuffer = New(8*10240)
     // total bytes number
     // current parsing message length
     addr2PreCon := make(map[string]*PreConnection)
@@ -405,15 +461,6 @@ func receiver(conn* net.UDPConn, addr2conn map[string]*Connection, msg_send_chan
                 fmt.Println(err)
             }
             conn, ok := addr2conn[addr.String()]
-            /*if(!ok){
-                conn = create_new_connection(addr, msg_send_chan)
-                fmt.Printf("[Info] creates a listen socket\n")
-                conn.state = listen
-                addr2conn[addr.String()] = conn
-                go func(cn *Connection){
-                    cn.handler(addr2conn)
-                }(conn)
-            }*/
             if(ok){
                 // move connection close procedure forward
                 // when current message is fin message
@@ -471,14 +518,69 @@ func receiver(conn* net.UDPConn, addr2conn map[string]*Connection, msg_send_chan
                     var ring_buffer *RingBuffer
                     ring_buffer = addr2conn[addr.String()].ring_buffer
                     ring_buffer.Write(buf[0:n])
-                    conn.receive()
+
+                    for {
+                        if(conn.ring_buffer.Length() < 2){
+                            return
+                        }
+                        msg_len := binary.BigEndian.Uint16(conn.ring_buffer.data[conn.ring_buffer.r:])
+                        fmt.Printf("[Info] Connection %s receive msg_len = %d \n", conn.addr.String(),msg_len)
+                        if(uint16(conn.ring_buffer.Length()) < msg_len){
+                            fmt.Printf("[Error] Connection %s ringBuffer length %d < msg length %d \n",conn.addr.String(),conn.ring_buffer.Length(), msg_len)
+                            return
+                        }
+                        msg_buff := make([]byte, msg_len)
+                        read_len := uint16(conn.ring_buffer.Read(msg_buff))
+                        if(msg_len != read_len){
+                            fmt.Printf("[Error] Connection %s msg_buff read  error", conn.addr.String())
+                        }
+                        // process Message 
+                        var msg Message
+                        msg.ConvertFromBuffer(msg_buff)
+                        msg_type := conn.get_message_type(msg.data)
+                        if(len(msg.data) > 0 ){
+                            fmt.Printf("[Info] receive seq = %d ack = %d syn = %d fin = %d rsd = %d data length = %d msg_type = %d data content = %s\n",msg.seq, msg.ack, msg.syn, msg.fin, msg.rsd,len(msg.data),msg_type, string(msg.data[2:]))
+                        }else{
+                            fmt.Printf("[Info] receive seq = %d ack = %d syn = %d fin = %d rsd = %d\n",msg.seq, msg.ack, msg.syn, msg.fin, msg.rsd )
+                        }
+                        conn.base = msg.ack
+                        if(conn.base == conn.nextseqnum){
+                            conn.stop_send_timer()
+                        }else{
+                            conn.restart_send_timer()
+                        }
+                        if(msg.seq != conn.cli_seq + 1){
+                            fmt.Printf("[Info] receive msg.seq (%d) != cli_seq + 1 (%d)",msg.seq, conn.cli_seq + 1);
+                            return;
+                        }
+                        conn.cli_seq = msg.seq
+                        // client message correctly receive in order
+                        // handle message 
+                        conn.cli_seq = msg.seq // set cli_seq
+                        if(msg_type == MSG_ECHO){
+                            //rand.Seed(time.Now().UTC().UnixNano())
+                            //if(rand.Intn(100) %2 == 0){
+                                data := make([]byte,len(msg.data[2:]))
+                                copy(data, msg.data[2:])
+                                conn.send_echo_message(data)
+                            //}else
+                            //{
+                             //   fmt.Printf("[handler] drop receive message intentionally")
+                            //}
+                        }else{// MSG_NONE do nothing
+                            conn.send_ack_message()
+                            //conn.send_ack_message(0,0)
+                        }
+
+                        //conn.handler(msg)
+
+                        //conn.msg_receive_chan <- msg
+                    }
                 }else{
                     fmt.Printf("[Warn] Unhandle Message with connection state = %d\n", conn.state)
                 }
-
-
             }else{
-                fmt.Printf("[Info] Receive message withou connection %d\n", n);
+                fmt.Printf("[Info] Receive message without connection %d\n", n);
                 // message without connection
                 // check if syn message
                 // move connection establish forward
@@ -489,8 +591,8 @@ func receiver(conn* net.UDPConn, addr2conn map[string]*Connection, msg_send_chan
                     //index = 0
                     msg_len := binary.BigEndian.Uint16(buf[0:2])
                     if( msg_len != MessageHeaderLength){
-                        fmt.Printf("[Info] Ignore SYN Message with Length %d not match Header Length %d\n", msg_len, MessageHeaderLength);
-                        return;
+                        fmt.Printf("[Info] Ignore SYN Message with Length %d not match Header Length %d\n", msg_len, MessageHeaderLength)
+                        return
                     }
                     seq := buff_seq(buf[:])
                     ack := buff_ack(buf[:])
@@ -509,9 +611,9 @@ func receiver(conn* net.UDPConn, addr2conn map[string]*Connection, msg_send_chan
                             preconn.addr = addr
                             addr2PreCon[addr.String()] = preconn
                             // we send syn & ack
-                            send_syn_recv_message(preconn.svr_seq_isn, inv_seq(seq),msg_send_chan,addr)
+                            send_syn_recv_message(preconn.svr_seq_isn, increase(seq),msg_send_chan,addr)
 
-                            preconn.svr_seq_isn = inv_seq(preconn.svr_seq_isn)
+                            preconn.svr_seq_isn = increase(preconn.svr_seq_isn)
                             fmt.Printf("[Info] receive SYN send SYN & ACK, change connection state to syn_rcvd\n")
                         }else{
                             // non-syn message is ignored
@@ -536,9 +638,9 @@ func receiver(conn* net.UDPConn, addr2conn map[string]*Connection, msg_send_chan
                                     addr2conn[addr.String()] = conn
                                     delete(addr2PreCon, addr.String())
                                     // start connection handler
-                                    go func(cn *Connection){
+                                    /* go func(cn *Connection){
                                         cn.handler(addr2conn)
-                                    }(conn)
+                                    }(conn)*/
                                     fmt.Printf("[Info] receive ACK send nothing, change connection state to established\n")
                                 }else {
                                     fmt.Printf("[Info] preconn.state %d is not syn_rcvd\n", preconn.state);
@@ -546,8 +648,12 @@ func receiver(conn* net.UDPConn, addr2conn map[string]*Connection, msg_send_chan
                             }
                         }else{
                             // receive syn when preconn already created
-                            // duplicate message ? ignore
+                            // duplicate message 
+                            // means sync_recv message get lost
+                            // need to resend sync_recv message
                             fmt.Printf("[Info] receive duplicate syn from %s, wee need ack from cli\n",addr.String())
+                            send_syn_recv_message(preconn.svr_seq_isn - 1, increase(seq), msg_send_chan, addr)
+                            fmt.Printf("[Info] receive SYN send SYN & ACK, change connection state to sync_rcvd")
                         }
                     }
                 } else {
