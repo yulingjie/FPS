@@ -68,7 +68,7 @@ class NetworkSender
             Log.InfoFormat("[NetworkSender] Send _imNextSendIndex = {0}", _imNextSendIndex);
         }
         _ringIMSendMsgBuffer[_imNextSendIndex] = msg;
-        _imNextSendIndex = (_imNextSendIndex + 1) & IM_SEND_BUFFER_SIZE;
+        _imNextSendIndex = (_imNextSendIndex + 1) %  IM_SEND_BUFFER_SIZE;
         StartAsyncSend();
     }
 
@@ -76,7 +76,10 @@ class NetworkSender
     {
         if(IsAsyncSendBufferFull())
         {
-            Log.InfoFormat("[Warnning] Async Send Buffer is Full!");
+            if(LOG_ENABLE)
+            {
+                Log.InfoFormat("[Warnning] Async Send Buffer is Full!");
+            }
             return;
         }
         if(LOG_ENABLE)
@@ -99,23 +102,29 @@ class NetworkSender
     {
         if(_eSendState == ESendState.Sending)
         {
-            //Log.InfoFormat("[Info] Cur eSendState = {0} StartAsyncSend failed", _eSendState);
+            if(LOG_ENABLE)
+            {
+                Log.InfoFormat("[Info] Cur eSendState = {0} StartAsyncSend failed", _eSendState);
+            }
             return;
         }
         if(IsAsyncSendBufferEmpty() && IsIMSendBufferEmpty())
         {
-            //Log.InfoFormat("[Info] AsyncSendBuffer is Empty");
+            if(LOG_ENABLE)
+            {
+                Log.InfoFormat("[Info] AsyncSendBuffer is Empty");
+            }
             return;
         }
         Message msg = null;
         if(!IsIMSendBufferEmpty())
         {
-           if(LOG_ENABLE)
-           {
-               Log.InfoFormat("[NetworkSender:StartAsyncSend] _imSendBase = {0}", _imSendBase);
-           }
-           msg = _ringIMSendMsgBuffer[_imSendBase];
-           _imSendBase = (_imSendBase + 1) % IM_SEND_BUFFER_SIZE;
+            if(LOG_ENABLE)
+            {
+                Log.InfoFormat("[NetworkSender:StartAsyncSend] _imSendBase = {0}", _imSendBase);
+            }
+            msg = _ringIMSendMsgBuffer[_imSendBase];
+            _imSendBase = (_imSendBase + 1) % IM_SEND_BUFFER_SIZE;
         }
         else if(!IsAsyncSendBufferEmpty())
         {
@@ -130,7 +139,7 @@ class NetworkSender
         {
             return;
         }
-
+        Log.InfoFormat("[NetworkSender] SendAsync seq = {0}", msg.seq); 
         TransferSendState(ESendState.Sending); 
         byte[] buff = new byte[msg.len];         
         Utility.ConvertMessageToByteArray(msg, ref buff);
@@ -154,6 +163,10 @@ class NetworkSender
 
     private void SendAsync()
     {
+        if(LOG_ENABLE)
+        {
+            Log.InfoFormat("[Info] SendAsync");
+        }
         _sendState.socket.BeginSend(_sendState.buffer,
                 _sendState.index,
                 _sendState.length - _sendState.index,

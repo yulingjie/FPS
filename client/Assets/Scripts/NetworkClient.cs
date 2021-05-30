@@ -2,6 +2,13 @@
 using System;
 using System.Collections.Concurrent;
 
+public enum ESAFlag: byte
+{
+    Ctrl = 0,
+    Seq = 1,
+    Ack = 2,
+}
+
 public class Message
 {
     public static UInt16 HEADER_LEN = sizeof(UInt16) + sizeof(byte) + sizeof(byte) + 1;
@@ -11,6 +18,7 @@ public class Message
     public byte syn;
     public byte fin;
     public byte rsd;
+    public byte ctrl;
 
     public byte[] data;
 

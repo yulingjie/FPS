@@ -74,6 +74,7 @@ static class Utility
         bt |= message.syn;
         bt |= (byte)(message.fin <<1);
         bt |= (byte)(message.rsd <<2);
+        bt |= (byte)(message.ctrl << 3);
         btarr[index++] = bt; 
         if (message.data != null)
         {
@@ -93,7 +94,8 @@ static class Utility
         byte bt = btarr[index++];
         message.syn = (byte)(bt & 0x01);
         message.fin = (byte)((bt >> 1) & 0x01);
-        message.rsd = (byte)((bt >> 1) & 0x01);
+        message.rsd = (byte)((bt >> 2) & 0x01);
+        message.ctrl = (byte)((bt >> 3) & 0x01);
         var dataLen = message.len  - Message.HEADER_LEN;
         if(dataLen > 0)
         {

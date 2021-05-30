@@ -11,6 +11,7 @@ interface INetworkConnection
     void Disconnect();
 }
 
+
 class State
 {
     const int MAX_SIZE = 8 * 1024;
@@ -94,24 +95,20 @@ class NetworkConnection:INetworkConnection
 
     public void SendMessage(Message msg, bool startTimer = false)
     {
-        SendMessage_Internal(msg, startTimer);
-    }
-   
-    public void SendMessage_Internal(Message msg, bool startTimer = false)
-    {
+        msg.ctrl = (byte)ESAFlag.Seq;
         UInt16 len = msg.GetLength();
         msg.len = len;
         _ringSendMsgAckBuffer[msg.seq] = msg;
 
-        _sender.Send(msg);  
-   }
-   
+        _sender.Send(msg); 
+    }
+
     public void Connect()
     {
         SendSYN();
         _receiver.Receive();
     }
-    
+
     public void Disconnect()
     {
         // clear unack message
@@ -129,8 +126,11 @@ class NetworkConnection:INetworkConnection
         msg.syn = 1;
         msg.fin = 0;
         msg.rsd = 1;
-
-        SendMessage_Internal(msg);
+        msg.ctrl = (byte)ESAFlag.Ctrl;
+        UInt16 len = msg.GetLength();
+        msg.len = len;
+        _ringSendMsgAckBuffer[msg.seq] = msg;
+        _sender.SendImmediate(msg); 
         _eConnectState = EConnectState.SYN_SENT;
 
     }
@@ -143,12 +143,15 @@ class NetworkConnection:INetworkConnection
         msg.syn = 0;
         msg.fin = 1;
         msg.rsd = 0;
-
-        SendMessage_Internal(msg);
+        msg.ctrl = (byte)ESAFlag.Ctrl;
+        UInt16 len = msg.GetLength();
+        msg.len = len;
+        _ringSendMsgAckBuffer[msg.seq] = msg;
+        _sender.Send(msg); 
         _eConnectState = EConnectState.FIN_WAIT_1;
         //        _finishTick = Time.realtimeSinceStartup;
     }
-   
+
 
     private void StartSendTimer()
     {
@@ -209,8 +212,74 @@ class NetworkConnection:INetworkConnection
     }
     void ProcessRecvBuffer(Message message)
     {
-        var ack = message.ack;
-        _base = ack;
+        Log.InfoFormat("[ProcessRecvBuffer] receive message seq = {0} ack = {1} ctrl = {2}", message.seq, message.ack, message.ctrl);
+        if(message.ctrl == (byte)ESAFlag.Ctrl)// ctrl message
+        {
+            //  receive syn & ack message
+            if(message.syn == 1)
+            {
+                if(_eConnectState == EConnectState.SYN_SENT)
+                {
+                    _base = message.ack;
+                    OnReceiveAck(); 
+                    SendCtrlAck();
+                    _eConnectState = EConnectState.ESTABLISHED;
+                    Log.InfoFormat("ProcessRecvBuffer _eConnectState from {0} to {1}", EConnectState.SYN_SENT, _eConnectState);
+                }
+                else
+                {
+                    Log.InfoFormat("[Info] Receive syn with _eConnectState = {0}", _eConnectState);
+                }
+            }
+            else if(message.fin == 1)
+            {
+                if(_eConnectState == EConnectState.FIN_WAIT_2)
+                {
+                    SendCtrlAck();
+                    _eConnectState = EConnectState.TIME_WAIT;
+                    Log.InfoFormat("[Info] Receive Fin, Send Ack, _eConnectState from {0} to {1}",EConnectState.FIN_WAIT_2, _eConnectState);
+                    _finCountdownId = CountdownTimer.Instance.StartTimer(3, FinCountdown);
+                }
+                else
+                {
+                    Log.InfoFormat("[Info] Receive Fin while _eConnectState = {0}", _eConnectState);
+                }
+            }
+            else if(_eConnectState == EConnectState.FIN_WAIT_1)// receive ack message for fin
+            {
+                _base = message.ack; 
+                OnReceiveAck();
+                _eConnectState = EConnectState.FIN_WAIT_2;
+                Log.InfoFormat("[Info] Receive Ack Send Nothing, _eConnectState = {0}", _eConnectState);
+            }
+        }
+        else if(message.ctrl == (byte)ESAFlag.Seq) // seq
+        {
+            if(message.seq != GetSvrSeq())
+            {
+                // ignore receiver 's message
+                Log.InfoFormat("[Info] Receive message.seq = {0} != _svrSeq {1}, discard", message.seq, _svrSeq);
+                ResendAck();
+                return;
+            }
+            // receive message correctly
+            // handle message
+            // set server seq
+            _svrSeq = message.seq;
+            Log.InfoFormat("[Info] ProcessRecvBuffer message.seq = {0}",message.seq);
+
+            SendAck();
+            _networkclient.PostMessage(message);
+        }
+        else if(message.ctrl == (byte)ESAFlag.Ack) //ack
+        {
+            var ack = message.ack;
+            _base = ack;
+            OnReceiveAck();
+        }
+    }
+    private void OnReceiveAck()
+    {
         if(_base == _nextSendSeq)
         {
             StopSendTimer();
@@ -218,56 +287,6 @@ class NetworkConnection:INetworkConnection
         else
         {
             RestartSendTimer();
-        }
-        if(message.seq != GetSvrSeq() && _eConnectState != EConnectState.SYN_SENT)
-        {
-            // ignore receiver 's message
-            Log.InfoFormat("[Info] Receive message.seq = {0} != _svrSeq {1}, discard", message.seq, _svrSeq);
-            SendAck();
-            return;
-        }
-
-        // receive message correctly
-        // handle message
-        // set server seq
-        _svrSeq = message.seq;
-        Log.InfoFormat("[Info] ProcessRecvBuffer message.seq = {0}",message.seq);
-        if(message.syn == 1) // establish connection
-        {
-            if(_eConnectState == EConnectState.SYN_SENT)
-            {
-                SendAck();
-                Log.Info("[Info] Receive SYN & ACK, send ACK connection ESTABLISHED");
-                _eConnectState = EConnectState.ESTABLISHED;
-            }
-            else
-            {
-                Log.InfoFormat("[Info] Receive syn with _eConnectState = {0}",_eConnectState);
-            }
-        }
-        else if(message.fin == 1) // finish connection
-        {
-            if(_eConnectState == EConnectState.FIN_WAIT_2)
-            {
-                Log.Info("[Info] Receive FIN, send ACK");
-                SendAck();
-                _eConnectState = EConnectState.TIME_WAIT;
-                _finCountdownId = CountdownTimer.Instance.StartTimer(3, FinCountdown);
-            }
-            else
-            {
-                Log.InfoFormat("[Info] Receive fin with _eConnectState = {0}", _eConnectState);
-            }
-        }
-        else if(_eConnectState == EConnectState.FIN_WAIT_1)
-        {
-            Log.Info("[Info] Receive Ack, send nothing");
-            _eConnectState = EConnectState.FIN_WAIT_2;
-        }
-        else // normal message
-        {
-            SendAck();
-            _networkclient.PostMessage(message);
         }
     }
     private uint _finCountdownId;
@@ -279,7 +298,7 @@ class NetworkConnection:INetworkConnection
         _socket.Close();
         _socket.Dispose();
     }
-    /*private void SendAck()
+    private void SendAck()
     {
         Message msg = new Message();
         msg.seq = 0; // ack message does not occupy seq
@@ -287,9 +306,31 @@ class NetworkConnection:INetworkConnection
         msg.syn = 0;
         msg.fin = 0;
         msg.rsd = 0;
+        msg.ctrl = (byte)ESAFlag.Ack; //0 seq, 1 ack
         msg.len = msg.GetLength();
         _sender.SendImmediate(msg);
-    }*/
+    }
+    private void SendCtrlAck()
+    {
+        Message msg = new Message();
+        msg.ack = GetSvrSeq();
+        msg.ctrl = (byte)ESAFlag.Ctrl;
+        msg.len = msg.GetLength();
+        _sender.SendImmediate(msg);
+    }
+
+    private void ResendAck()
+    {
+        Message msg = new Message();
+        msg.seq = 0;
+        msg.ack = _svrSeq;
+        msg.syn = 0;
+        msg.fin = 0;
+        msg.rsd = 0;
+        msg.ctrl = 1;
+        msg.len = msg.GetLength();
+        _sender.SendImmediate(msg);
+    }
     private int GetMessageLength(byte[] buffer)
     {
         var lenBuf = new byte[2];
@@ -299,7 +340,7 @@ class NetworkConnection:INetworkConnection
         var len = BitConverter.ToUInt16(lenBuf,0);
         return len;
     }
-     
+
     private byte GetCliSeq()
     {
         _nextSendSeq ++;
