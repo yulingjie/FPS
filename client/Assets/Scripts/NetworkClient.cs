@@ -11,7 +11,7 @@ public enum ESAFlag: byte
 
 public class Message
 {
-    public static UInt16 HEADER_LEN = sizeof(UInt16) + sizeof(byte) + sizeof(byte) + 1;
+    public static UInt16 HEADER_LEN = sizeof(UInt16) + sizeof(byte) + sizeof(byte) + sizeof(byte) + 1;
     public UInt16 len;
     public byte seq;
     public byte ack;

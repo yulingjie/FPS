@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Collections.Generic;
+using System.Text;
 
 interface INetworkConnection
 {
@@ -98,6 +99,7 @@ class NetworkConnection:INetworkConnection
         msg.ctrl = (byte)ESAFlag.Seq;
         UInt16 len = msg.GetLength();
         msg.len = len;
+        msg.seq = GetCliSeq();
         _ringSendMsgAckBuffer[msg.seq] = msg;
 
         _sender.Send(msg); 
@@ -132,7 +134,7 @@ class NetworkConnection:INetworkConnection
         _ringSendMsgAckBuffer[msg.seq] = msg;
         _sender.SendImmediate(msg); 
         _eConnectState = EConnectState.SYN_SENT;
-
+        Log.InfoFormat("[Info] SendSYN seq = {0} ack = {1}", msg.seq, msg.ack);
     }
     void SendFIN()
     {
@@ -215,12 +217,14 @@ class NetworkConnection:INetworkConnection
         Log.InfoFormat("[ProcessRecvBuffer] receive message seq = {0} ack = {1} ctrl = {2}", message.seq, message.ack, message.ctrl);
         if(message.ctrl == (byte)ESAFlag.Ctrl)// ctrl message
         {
+            Log.InfoFormat("[Info] ProcessRecvBuffer Receive Ctrl Message");
             //  receive syn & ack message
             if(message.syn == 1)
             {
                 if(_eConnectState == EConnectState.SYN_SENT)
                 {
-                    _base = message.ack;
+                    _base = (byte)(message.ack + 1);
+                    _svrSeq = message.seq;
                     OnReceiveAck(); 
                     SendCtrlAck();
                     _eConnectState = EConnectState.ESTABLISHED;
@@ -247,7 +251,7 @@ class NetworkConnection:INetworkConnection
             }
             else if(_eConnectState == EConnectState.FIN_WAIT_1)// receive ack message for fin
             {
-                _base = message.ack; 
+                _base = (byte)(message.ack + 1); 
                 OnReceiveAck();
                 _eConnectState = EConnectState.FIN_WAIT_2;
                 Log.InfoFormat("[Info] Receive Ack Send Nothing, _eConnectState = {0}", _eConnectState);
@@ -255,6 +259,7 @@ class NetworkConnection:INetworkConnection
         }
         else if(message.ctrl == (byte)ESAFlag.Seq) // seq
         {
+            Log.InfoFormat("[Info] ProcessRecvBuffer Receive seq message");
             if(message.seq != GetSvrSeq())
             {
                 // ignore receiver 's message
@@ -274,12 +279,15 @@ class NetworkConnection:INetworkConnection
         else if(message.ctrl == (byte)ESAFlag.Ack) //ack
         {
             var ack = message.ack;
-            _base = ack;
+            _base = (byte)(ack);
+
+            Log.InfoFormat("[Info] ProcessRecvBuffer Receive ack message ack = {0}",ack);
             OnReceiveAck();
         }
     }
     private void OnReceiveAck()
     {
+        Log.InfoFormat("OnReceiveAck _base = {0} _nextSendSeq = {1}", _base, _nextSendSeq);
         if(_base == _nextSendSeq)
         {
             StopSendTimer();
@@ -301,7 +309,7 @@ class NetworkConnection:INetworkConnection
     private void SendAck()
     {
         Message msg = new Message();
-        msg.seq = 0; // ack message does not occupy seq
+        msg.seq = _nextSendSeq; // ack message does not occupy seq
         msg.ack = GetSvrSeq();
         msg.syn = 0;
         msg.fin = 0;
@@ -309,14 +317,18 @@ class NetworkConnection:INetworkConnection
         msg.ctrl = (byte)ESAFlag.Ack; //0 seq, 1 ack
         msg.len = msg.GetLength();
         _sender.SendImmediate(msg);
+
+        Log.InfoFormat("[Info] SendAck seq = {0} ack = {1}", msg.seq, msg.ack);
     }
     private void SendCtrlAck()
     {
         Message msg = new Message();
         msg.ack = GetSvrSeq();
+        msg.seq = _nextSendSeq; // ack message will not increase send seq
         msg.ctrl = (byte)ESAFlag.Ctrl;
         msg.len = msg.GetLength();
         _sender.SendImmediate(msg);
+        Log.InfoFormat("[Info] SendCtrlAck seq = {0} ack = {1}", msg.seq, msg.ack);
     }
 
     private void ResendAck()
@@ -349,7 +361,7 @@ class NetworkConnection:INetworkConnection
 
     public byte GetSvrSeq()
     {
-        return Utility.increase(_svrSeq);
+        return (_svrSeq);
     }
 
 }
