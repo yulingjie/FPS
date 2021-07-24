@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2021-07-24T11:36:32.381Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="Wm-5zCB2ajBa7L7ch19M" version="14.9.0" type="github">
+<mxfile host="app.diagrams.net" modified="2021-07-24T11:47:22.196Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="8l2Ctaby_oTOP1ImzW5y" version="14.9.0" type="github">
   <diagram id="ZgwZ0shpW7y96EK6JcSE" name="Page-1">
     <mxGraphModel dx="1298" dy="788" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -111,6 +111,21 @@
         </mxCell>
         <mxCell id="EnSLmsnrf0qdKdnjyVf9-4" value="+ method(type): type" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="EnSLmsnrf0qdKdnjyVf9-1">
           <mxGeometry y="60" width="160" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="EnSLmsnrf0qdKdnjyVf9-5" value="LocalPlayerCharacterControl" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="560" y="250" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="EnSLmsnrf0qdKdnjyVf9-6" value="+ lastRegisteredControlledEntity Entity" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="EnSLmsnrf0qdKdnjyVf9-5">
+          <mxGeometry y="26" width="220" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="EnSLmsnrf0qdKdnjyVf9-7" value="+ healthUI: CharacterHealthUI" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="EnSLmsnrf0qdKdnjyVf9-5">
+          <mxGeometry y="52" width="220" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="EnSLmsnrf0qdKdnjyVf9-8" value="+ hud: ImageHUD" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="EnSLmsnrf0qdKdnjyVf9-5">
+          <mxGeometry y="78" width="220" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="EnSLmsnrf0qdKdnjyVf9-9" value="+ lastDamageInflictedTick: int" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="EnSLmsnrf0qdKdnjyVf9-5">
+          <mxGeometry y="104" width="220" height="26" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
