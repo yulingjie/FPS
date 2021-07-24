@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2021-07-24T11:57:40.230Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="Y4r7MNZMr490HxFFtxes" version="14.9.0" type="github">
+<mxfile host="app.diagrams.net" modified="2021-07-24T12:05:45.582Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="4pMIx0MqUyctqTIDxKhf" version="14.9.0" type="github">
   <diagram id="ZgwZ0shpW7y96EK6JcSE" name="Page-1">
     <mxGraphModel dx="1298" dy="788" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -155,7 +155,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="udVq7MIfCVP84r-vdqy7-9" value="CharacterHealthUI" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
-          <mxGeometry x="810" y="30" width="280" height="86" as="geometry" />
+          <mxGeometry x="547" y="50" width="280" height="86" as="geometry" />
         </mxCell>
         <mxCell id="udVq7MIfCVP84r-vdqy7-10" value="+ m_HealthText: TextMeshProUGUI" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-9">
           <mxGeometry y="26" width="280" height="26" as="geometry" />
@@ -165,6 +165,24 @@
         </mxCell>
         <mxCell id="udVq7MIfCVP84r-vdqy7-12" value="+ UpdateUI(healthState : HeathStateData): void" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-9">
           <mxGeometry y="60" width="280" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-13" value="LocalPlayer" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="170" width="320" height="156" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-14" value="+ playerState: PlayerState" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-13">
+          <mxGeometry y="26" width="320" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-15" value="+ networkClient: NetworkClient" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-13">
+          <mxGeometry y="52" width="320" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-16" value="+ command: UserCommand" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-13">
+          <mxGeometry y="78" width="320" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-17" value="+ commandBuffer: TickStateDenseBuffer&lt;UserCommand&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-13">
+          <mxGeometry y="104" width="320" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-18" value="+ controlledEntity:Entity" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-13">
+          <mxGeometry y="130" width="320" height="26" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
