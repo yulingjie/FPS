@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2021-07-24T12:05:45.582Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="4pMIx0MqUyctqTIDxKhf" version="14.9.0" type="github">
+<mxfile host="app.diagrams.net" modified="2021-07-24T12:09:21.402Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="r-gBZ_RMlJZO0niz_aA7" version="14.9.0" type="github">
   <diagram id="ZgwZ0shpW7y96EK6JcSE" name="Page-1">
     <mxGraphModel dx="1298" dy="788" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -109,7 +109,7 @@
         <mxCell id="EnSLmsnrf0qdKdnjyVf9-3" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" parent="EnSLmsnrf0qdKdnjyVf9-1" vertex="1">
           <mxGeometry y="52" width="160" height="8" as="geometry" />
         </mxCell>
-        <mxCell id="EnSLmsnrf0qdKdnjyVf9-4" value="+ method(type): type" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="EnSLmsnrf0qdKdnjyVf9-1" vertex="1">
+        <mxCell id="EnSLmsnrf0qdKdnjyVf9-4" value="+ OnUpdate(): void" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="EnSLmsnrf0qdKdnjyVf9-1" vertex="1">
           <mxGeometry y="60" width="160" height="26" as="geometry" />
         </mxCell>
         <mxCell id="EnSLmsnrf0qdKdnjyVf9-5" value="LocalPlayerCharacterControl" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" parent="1" vertex="1">
@@ -167,7 +167,7 @@
           <mxGeometry y="60" width="280" height="26" as="geometry" />
         </mxCell>
         <mxCell id="udVq7MIfCVP84r-vdqy7-13" value="LocalPlayer" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
-          <mxGeometry x="1160" y="170" width="320" height="156" as="geometry" />
+          <mxGeometry x="790" y="320" width="320" height="156" as="geometry" />
         </mxCell>
         <mxCell id="udVq7MIfCVP84r-vdqy7-14" value="+ playerState: PlayerState" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-13">
           <mxGeometry y="26" width="320" height="26" as="geometry" />
