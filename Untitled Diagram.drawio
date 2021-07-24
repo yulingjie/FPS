@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2021-07-24T11:49:59.898Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="QxLbJ6Aplyut_bXpnBVs" version="14.9.0" type="github">
+<mxfile host="app.diagrams.net" modified="2021-07-24T11:54:48.920Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="1M8hgkkYVs6RO3fwAb21" version="14.9.0" type="github">
   <diagram id="ZgwZ0shpW7y96EK6JcSE" name="Page-1">
     <mxGraphModel dx="1298" dy="788" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -132,6 +132,24 @@
         </mxCell>
         <mxCell id="udVq7MIfCVP84r-vdqy7-2" value="+ registerCharUIs: List&lt;AbilityUI&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="EnSLmsnrf0qdKdnjyVf9-5">
           <mxGeometry y="156" width="220" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-3" value="FirstPersonData" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="827" y="180" width="283" height="104" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-4" value="+ char3P: Entity" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-3">
+          <mxGeometry y="26" width="283" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-5" value="+ char1P: Entity" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-3">
+          <mxGeometry y="52" width="283" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-6" value="+ presentations: ist&lt;CharacterPresentationSetup&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-3">
+          <mxGeometry y="78" width="283" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-7" value="" style="endArrow=circlePlus;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;labelBackgroundColor=none;" edge="1" parent="1" source="EnSLmsnrf0qdKdnjyVf9-5" target="udVq7MIfCVP84r-vdqy7-3">
+          <mxGeometry width="160" relative="1" as="geometry">
+            <mxPoint x="330" y="400" as="sourcePoint" />
+            <mxPoint x="490" y="400" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
