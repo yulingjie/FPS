@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2021-07-24T13:59:56.188Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="vWP3XdB1ReQ0abgSrH1Y" version="14.9.0" type="github">
+<mxfile host="app.diagrams.net" modified="2021-07-24T14:09:06.042Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="FHyH57NYSf2Hp-AUnyCc" version="14.9.0" type="github">
   <diagram id="ZgwZ0shpW7y96EK6JcSE" name="Page-1">
     <mxGraphModel dx="1298" dy="1957" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -227,6 +227,27 @@
         </mxCell>
         <mxCell id="udVq7MIfCVP84r-vdqy7-37" value="+ abilityCollection: entity" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-35">
           <mxGeometry y="52" width="140" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-39" value="CharacterPresentationSetup" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1470" y="200" width="200" height="182" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-40" value="+ geometry: GameObject" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-39">
+          <mxGeometry y="26" width="200" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-41" value="+ itemAttachBone: Transform" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-39">
+          <mxGeometry y="52" width="200" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-42" value="+ uiPrefabs: AbilityUI[]" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-39">
+          <mxGeometry y="78" width="200" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-43" value="+ character: Entity" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-39">
+          <mxGeometry y="104" width="200" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-44" value="+ updateTransform: bool" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-39">
+          <mxGeometry y="130" width="200" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="udVq7MIfCVP84r-vdqy7-45" value="+ attachToPresentation: Entity" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-39">
+          <mxGeometry y="156" width="200" height="26" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
