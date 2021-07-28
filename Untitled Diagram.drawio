@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2021-07-28T15:30:41.387Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="KlwS3UJzm5Yq65PgrWyc" version="14.9.0" type="github">
+<mxfile host="app.diagrams.net" modified="2021-07-28T15:32:06.807Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="OKbZDraRViajlK3RoXd8" version="14.9.0" type="github">
   <diagram id="ZgwZ0shpW7y96EK6JcSE" name="Page-1">
     <mxGraphModel dx="1298" dy="1957" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -312,6 +312,9 @@
         <mxCell id="udVq7MIfCVP84r-vdqy7-83" value="HitCollisionData" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" parent="1" vertex="1">
           <mxGeometry x="2835" y="206" width="770" height="52" as="geometry" />
         </mxCell>
+        <mxCell id="omwPgAVM0NgZN8VswFqx-26" value="+ hitCollisionOwner: Entity" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="udVq7MIfCVP84r-vdqy7-83">
+          <mxGeometry y="26" width="770" height="26" as="geometry" />
+        </mxCell>
         <mxCell id="udVq7MIfCVP84r-vdqy7-87" value="HitCollType" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" parent="1" vertex="1">
           <mxGeometry x="2920" y="-190" width="140" height="104" as="geometry" />
         </mxCell>
@@ -325,7 +328,7 @@
           <mxGeometry y="78" width="140" height="26" as="geometry" />
         </mxCell>
         <mxCell id="udVq7MIfCVP84r-vdqy7-91" value="CollisionResult" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" parent="1" vertex="1">
-          <mxGeometry x="2570" y="-73" width="140" height="182" as="geometry" />
+          <mxGeometry x="2600" y="-86" width="140" height="182" as="geometry" />
         </mxCell>
         <mxCell id="udVq7MIfCVP84r-vdqy7-92" value="+ hit: int" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="udVq7MIfCVP84r-vdqy7-91" vertex="1">
           <mxGeometry y="26" width="140" height="26" as="geometry" />
