@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2021-08-04T15:18:12.328Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="pkQjHWkDbQhsd_aGbiUO" version="14.9.4" type="github">
+<mxfile host="app.diagrams.net" modified="2021-08-08T07:07:07.787Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15" etag="aQT_zculXTabU2gS6Ukl" version="14.9.4" type="github">
   <diagram id="ZgwZ0shpW7y96EK6JcSE" name="Page-1">
     <mxGraphModel dx="1298" dy="1957" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -485,6 +485,12 @@
         </mxCell>
         <mxCell id="oTY7jLHs6dgtr7THLuvk-20" value="AbilityMovement" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" parent="1" vertex="1">
           <mxGeometry x="1360" y="-890" width="140" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="QVzGMlHwC38eAqf3Hk17-1" value="UserCommandComponentData" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=none;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="1543.5" y="-890" width="176.5" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="QVzGMlHwC38eAqf3Hk17-2" value="+ command: UserCommand" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="QVzGMlHwC38eAqf3Hk17-1">
+          <mxGeometry y="26" width="176.5" height="26" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
